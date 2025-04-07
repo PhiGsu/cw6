@@ -1,3 +1,4 @@
+import 'package:cw6/add_task_dialog.dart';
 import 'package:cw6/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,11 +12,13 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  late Stream<List<Task>> _taskListStream;
 
-  Stream<List<Task>> _fetchTasks() {
-    return FirebaseFirestore.instance
+  @override
+  void initState() {
+    super.initState();
+    _taskListStream = FirebaseFirestore.instance
         .collection('tasks')
         .where('userId', isEqualTo: _userId)
         .snapshots()
@@ -42,6 +45,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
     FirebaseFirestore.instance.collection('tasks').doc(taskId).delete();
   }
 
+  void _showAddTaskDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AddTaskDialog(
+          onTaskCreated: _addTask,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,7 +70,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
             onPressed: () {
               Navigator.pushReplacement(context,
                   MaterialPageRoute(builder: (context) => LoginScreen()));
-              _auth.signOut();
+              FirebaseAuth.instance.signOut();
             },
           )
         ],
@@ -66,7 +80,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             StreamBuilder<List<Task>>(
-              stream: _fetchTasks(),
+              stream: _taskListStream,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
                   return Expanded(
@@ -90,7 +104,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: _showAddTaskDialog,
         tooltip: 'Add Task',
         child: const Icon(Icons.add),
       ),
